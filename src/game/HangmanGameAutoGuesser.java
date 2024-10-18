@@ -1,7 +1,5 @@
 package game;
 
-import util.ConsoleReader;
-import util.DisplayWord;
 import util.HangmanDictionary;
 
 
@@ -12,33 +10,20 @@ import util.HangmanDictionary;
  * @author Robert C. Duvall
  */
 public class HangmanGameAutoGuesser {
-    private static final String ALPHABET = "abcdefghijklmnopqrstuvwxyz";
-    private static final String LETTERS_ORDERED_BY_FREQUENCY = "etaoinshrldcumfpgwybvkxjqz";
 
-    // word that is being guessed
-    private String mySecretWord;
-    // how many guesses are remaining
-    private int myNumGuessesLeft;
-    // what is shown to the user
-    private DisplayWord myDisplayWord;
-    // tracks letters guessed
-    private StringBuilder myLettersLeftToGuess;
-    // guesser state
-    private String myLetters;
-    private int myIndex;
-
+    private Executioner exe = new Executioner();
+    private AutoGuesser player = new AutoGuesser();
 
     /**
      * Create Hangman game with the given dictionary of words to play a game with words 
      * of the given length and giving the user the given number of chances.
      */
     public HangmanGameAutoGuesser (HangmanDictionary dictionary, int wordLength, int numGuesses) {
-        mySecretWord = getSecretWord(dictionary, wordLength);
-        myNumGuessesLeft = numGuesses;
-        myLettersLeftToGuess = new StringBuilder(ALPHABET);
-        myDisplayWord = new DisplayWord(mySecretWord);
-        myLetters = LETTERS_ORDERED_BY_FREQUENCY;
-        myIndex = 0;
+        player.setUpExecutioner4AG(exe);
+        exe.setUpSecretWord(dictionary, wordLength);
+        player.setGuessingLetters(player.getFreqLetters());
+        player.setGuesses(numGuesses);
+        exe.setUpDisplayWord();
     }
 
     /**
@@ -49,8 +34,7 @@ public class HangmanGameAutoGuesser {
         while (!gameOver) {
             printStatus();
 
-            Character guess = myLetters.charAt(myIndex++);
-            makeGuess(guess);
+            player.makeNextGuess();
             if (isGameLost()) {
                 System.out.println("YOU ARE HUNG!!!");
                 gameOver = true;
@@ -60,62 +44,26 @@ public class HangmanGameAutoGuesser {
                 gameOver = true;
             }
         }
-        System.out.println("The secret word was " + mySecretWord);
-    }
-
-
-    // Process a guess by updating the necessary internal state.
-    private void makeGuess (char guess) {
-        // do not count repeated guess as a miss
-        int index = myLettersLeftToGuess.indexOf("" + guess);
-        if (index >= 0) {
-            recordGuess(index);
-            if (! checkGuessInSecret(guess)) {
-                myNumGuessesLeft -= 1;
-            }
-        }
-    }
-
-    // Record that a specific letter was guessed
-    private void recordGuess (int index) {
-        myLettersLeftToGuess.deleteCharAt(index);
-    }
-
-    // Returns true only if given guess is in the secret word.
-    private boolean checkGuessInSecret (char guess) {
-        if (mySecretWord.indexOf(guess) >= 0) {
-            myDisplayWord.update(guess, mySecretWord);
-            return true;
-        }
-        return false;
-    }
-
-    // Returns a secret word.
-    private String getSecretWord (HangmanDictionary dictionary, int wordLength) {
-        String result = ConsoleReader.promptString("Choose a secret word that is " + wordLength + " letters long: ");
-        while (! dictionary.contains(result, wordLength)) {
-            result = ConsoleReader.promptString("That word is not recognized, please choose another: ");
-        }
-        return result;
+        System.out.println("The secret word was " + exe.getSecretWord());
     }
 
     // Returns true only if the guesser has guessed all letters in the secret word.
     private boolean isGameWon () {
-        return myDisplayWord.equals(mySecretWord);
+        return exe.getDisplayWord().equals(exe.getSecretWord());
     }
 
     // Returns true only if the guesser has used up all their chances to guess.
     private boolean isGameLost () {
-        return myNumGuessesLeft == 0;
+        return player.getGuessesLeft() == 0;
     }
 
     // Print game stats
     private void printStatus () {
-        System.out.println(myDisplayWord);
-        System.out.println("# misses left = " + myNumGuessesLeft);
-        System.out.println("letters not yet guessed = " + myLettersLeftToGuess);
+        System.out.println(exe.getDisplayWord());
+        System.out.println("# misses left = " + player.getGuessesLeft());
+        System.out.println("letters not yet guessed = " + player.getLettersLeft());
         // NOT PUBLIC, but makes it easier to test
-        System.out.println("*** " + mySecretWord);
+        System.out.println("*** " + exe.getSecretWord());
         System.out.println();
     }
 }
